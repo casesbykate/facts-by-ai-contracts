@@ -1,6 +1,7 @@
 pragma solidity ^0.5.6;
 
 import "./klaytn-contracts/token/KIP17/IKIP17.sol";
+import "./interfaces/IMix.sol";
 import "./klaytn-contracts/token/KIP17/KIP17Full.sol";
 import "./klaytn-contracts/token/KIP17/KIP17Pausable.sol";
 import "./klaytn-contracts/ownership/Ownable.sol";
@@ -8,20 +9,22 @@ import "./klaytn-contracts/ownership/Ownable.sol";
 contract FactsByAINFT is Ownable, KIP17Full("Facts By AI", "AIFACTS"), KIP17Pausable {
 
     IKIP17 public cbk;
+    IMix public mix;
     mapping(uint256 => string) public facts;
 
-    constructor(IKIP17 _cbk) public {
+    constructor(IKIP17 _cbk, IMix _mix) public {
         cbk = _cbk;
+        mix = _mix;
     }
 
     function tokenURI(uint256 tokenId) public view returns (string memory) {
         require(_exists(tokenId), "KIP17Metadata: URI query for nonexistent token");
         
         if (tokenId == 0) {
-            return "https://api.casesbykate.xyz/nft/0";
+            return "https://api.casesbykate.xyz/aifacts/0";
         }
 
-        string memory baseURI = "https://api.casesbykate.xyz/nft/";
+        string memory baseURI = "https://api.casesbykate.xyz/aifacts/";
         string memory idstr;
         
         uint256 temp = tokenId;
@@ -47,6 +50,7 @@ contract FactsByAINFT is Ownable, KIP17Full("Facts By AI", "AIFACTS"), KIP17Paus
 
     function mint(uint256 id, string calldata fact) external {
         require(cbk.ownerOf(id) == msg.sender);
+        mix.burnFrom(msg.sender, 1 ether);
         facts[id] = fact;
         _mint(msg.sender, id);
     }

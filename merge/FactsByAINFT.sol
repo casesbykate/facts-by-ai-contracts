@@ -72,6 +72,123 @@ contract IKIP17 is IKIP13 {
 }
 
 /**
+ * @dev Interface of the KIP7 standard as defined in the KIP. Does not include
+ * the optional functions; to access them see `KIP7Metadata`.
+ * See http://kips.klaytn.com/KIPs/kip-7-fungible_token
+ */
+contract IKIP7 is IKIP13 {
+    /**
+     * @dev Returns the amount of tokens in existence.
+     */
+    function totalSupply() external view returns (uint256);
+
+    /**
+     * @dev Returns the amount of tokens owned by `account`.
+     */
+    function balanceOf(address account) external view returns (uint256);
+
+    /**
+     * @dev Moves `amount` tokens from the caller's account to `recipient`.
+     *
+     * Returns a boolean value indicating whether the operation succeeded.
+     *
+     * Emits a `Transfer` event.
+     */
+    function transfer(address recipient, uint256 amount) external returns (bool);
+
+    /**
+     * @dev Returns the remaining number of tokens that `spender` will be
+     * allowed to spend on behalf of `owner` through `transferFrom`. This is
+     * zero by default.
+     *
+     * This value changes when `approve` or `transferFrom` are called.
+     */
+    function allowance(address owner, address spender) external view returns (uint256);
+
+    /**
+     * @dev Sets `amount` as the allowance of `spender` over the caller's tokens.
+     *
+     * Returns a boolean value indicating whether the operation succeeded.
+     *
+     * > Beware that changing an allowance with this method brings the risk
+     * that someone may use both the old and the new allowance by unfortunate
+     * transaction ordering. One possible solution to mitigate this race
+     * condition is to first reduce the spender's allowance to 0 and set the
+     * desired value afterwards:
+     * https://github.com/ethereum/EIPs/issues/20#issuecomment-263524729
+     *
+     * Emits an `Approval` event.
+     */
+    function approve(address spender, uint256 amount) external returns (bool);
+
+    /**
+     * @dev Moves `amount` tokens from `sender` to `recipient` using the
+     * allowance mechanism. `amount` is then deducted from the caller's
+     * allowance.
+     *
+     * Returns a boolean value indicating whether the operation succeeded.
+     *
+     * Emits a `Transfer` event.
+     */
+    function transferFrom(address sender, address recipient, uint256 amount) external returns (bool);
+
+    /**
+    * @dev Moves `amount` tokens from the caller's account to `recipient`.
+    */
+    function safeTransfer(address recipient, uint256 amount, bytes memory data) public;
+
+    /**
+    * @dev  Moves `amount` tokens from the caller's account to `recipient`.
+    */
+    function safeTransfer(address recipient, uint256 amount) public;
+
+    /**
+    * @dev Moves `amount` tokens from `sender` to `recipient` using the allowance mechanism.
+    * `amount` is then deducted from the caller's allowance.
+    */
+    function safeTransferFrom(address sender, address recipient, uint256 amount, bytes memory data) public;
+
+    /**
+    * @dev Moves `amount` tokens from `sender` to `recipient` using the allowance mechanism.
+    * `amount` is then deducted from the caller's allowance.
+    */
+    function safeTransferFrom(address sender, address recipient, uint256 amount) public;
+
+    /**
+     * @dev Emitted when `value` tokens are moved from one account (`from`) to
+     * another (`to`).
+     *
+     * Note that `value` may be zero.
+     */
+    event Transfer(address indexed from, address indexed to, uint256 value);
+
+    /**
+     * @dev Emitted when the allowance of a `spender` for an `owner` is set by
+     * a call to `approve`. `value` is the new allowance.
+     */
+    event Approval(address indexed owner, address indexed spender, uint256 value);
+}
+
+interface IMix {
+
+    event Transfer(address indexed from, address indexed to, uint256 value);
+    event Approval(address indexed owner, address indexed spender, uint256 value);
+
+    function totalSupply() external view returns (uint256);
+    function balanceOf(address account) external view returns (uint256);
+    
+    function allowance(address owner, address spender) external view returns (uint256);
+    function approve(address spender, uint256 amount) external returns (bool);
+    
+    function transfer(address recipient, uint256 amount) external returns (bool);
+    function transferFrom(address sender, address recipient, uint256 amount) external returns (bool);
+    
+    function mint(address to, uint256 amount) external;
+    function burn(uint256 amount) external;
+    function burnFrom(address account, uint256 amount) external;
+}
+
+/**
  * @title ERC721 token receiver interface
  * @dev Interface for any contract that wants to support safeTransfers
  * from ERC721 asset contracts.
@@ -1267,20 +1384,22 @@ contract Ownable {
 contract FactsByAINFT is Ownable, KIP17Full("Facts By AI", "AIFACTS"), KIP17Pausable {
 
     IKIP17 public cbk;
+    IMix public mix;
     mapping(uint256 => string) public facts;
 
-    constructor(IKIP17 _cbk) public {
+    constructor(IKIP17 _cbk, IMix _mix) public {
         cbk = _cbk;
+        mix = _mix;
     }
 
     function tokenURI(uint256 tokenId) public view returns (string memory) {
         require(_exists(tokenId), "KIP17Metadata: URI query for nonexistent token");
         
         if (tokenId == 0) {
-            return "https://api.casesbykate.xyz/nft/0";
+            return "https://api.casesbykate.xyz/aifacts/0";
         }
 
-        string memory baseURI = "https://api.casesbykate.xyz/nft/";
+        string memory baseURI = "https://api.casesbykate.xyz/aifacts/";
         string memory idstr;
         
         uint256 temp = tokenId;
@@ -1306,6 +1425,7 @@ contract FactsByAINFT is Ownable, KIP17Full("Facts By AI", "AIFACTS"), KIP17Paus
 
     function mint(uint256 id, string calldata fact) external {
         require(cbk.ownerOf(id) == msg.sender);
+        mix.burnFrom(msg.sender, 1 ether);
         facts[id] = fact;
         _mint(msg.sender, id);
     }
